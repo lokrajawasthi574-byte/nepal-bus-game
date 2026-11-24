@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bus Simulator Nepal - Start</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #ui {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 15px 30px;
+            border-radius: 15px; display: flex; gap: 30px; font-size: 24px;
+            border: 2px solid #00ff00;
+        }
+        #controls {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8);
+            color: white; padding: 15px; border-radius: 10px; font-size: 14px;
+        }
+        .val { color: #00ff00; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>🚌 Controls</h3>
+        <p>⬆️ W = Agadi (Accelerate)</p>
+        <p>⬇️ S = Padi (Brake/Reverse)</p>
+        <p>⬅️ A = Baya (Left)</p>
+        <p>➡️ D = Daya (Right)</p>
+    </div>
+   
+    <div id="ui">
+        <div>Speed: <span id="speed" class="val">0</span> km/h</div>
+        <div>Fuel: <span id="fuel" class="val">100</span>%</div>
+    </div>
+
+    <!-- 3D Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+   
+    <script>
+        // 1. Scene Setup (Environment)
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Aakash ko rang
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Ground (Ghaas)
+        const groundGeo = new THREE.PlaneGeometry(1000, 1000);
+        const groundMat = new THREE.MeshBasicMaterial({ color: 0x228B22 }); // Green
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        // 3. Road (Baato)
+        const roadGeo = new THREE.PlaneGeometry(20, 1000);
+        const roadMat = new THREE.MeshBasicMaterial({ color: 0x333333 }); // Grey
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        road.position.y = 0.01;
+        scene.add(road);
+
+        // 4. Bus (Hamro Bus)
+        const busGroup = new THREE.Group();
+       
+        // Bus Body (Raato)
+        const bodyGeo = new THREE.BoxGeometry(3, 2.5, 8);
+        const bodyMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        const busBody = new THREE.Mesh(bodyGeo, bodyMat);
+        busBody.position.y = 1.75;
+        busGroup.add(busBody);
+
+        // Bus Windows (Nilo)
+        const winGeo = new THREE.BoxGeometry(3.1, 1, 6);
+        const winMat = new THREE.MeshBasicMaterial({ color: 0x87CEEB });
+        const busWin = new THREE.Mesh(winGeo, winMat);
+        busWin.position.y = 2.2;
+        busGroup.add(busWin);
+
+        // Wheels (Kalo)
+        const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16);
+        const wheelMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        const positions = [[-1.5, 0.5, 2.5], [1.5, 0.5, 2.5], [-1.5, 0.5, -2.5], [1.5, 0.5, -2.5]];
+        positions.forEach(pos => {
+            const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(...pos);
+            busGroup.add(wheel);
+        });
+
+        scene.add(busGroup);
+
+        // 5. Trees (Rukh haru)
+        for(let i=0; i<30; i++) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), new THREE.MeshBasicMaterial({color: 0x4a2511}));
+            trunk.position.y = 0.5;
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(1, 2), new THREE.MeshBasicMaterial({color: 0x006400}));
+            leaves.position.y = 1.5;
+            tree.add(trunk); tree.add(leaves);
+           
+            const side = Math.random() > 0.5 ? 15 : -15;
+            tree.position.set(side + Math.random()*10, 0, (Math.random()-0.5)*200);
+            scene.add(tree);
+        }
+
+        // 6. Game Logic
+        let speed = 0;
+        let fuel = 100;
+        const keys = {};
+
+        document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+        document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Acceleration
+            if ((keys['w'] || keys['arrowup']) && fuel > 0) {
+                speed += 0.2;
+                fuel -= 0.02;
+            } else if (keys['s'] || keys['arrowdown']) {
+                speed -= 0.2;
+            } else {
+                speed *= 0.95; // Friction
+            }
+
+            // Steering
+            if (keys['a'] || keys['arrowleft']) busGroup.rotation.y += 0.03;
+            if (keys['d'] || keys['arrowright']) busGroup.rotation.y -= 0.03;
+
+            // Move
+            busGroup.translateZ(-speed * 0.05);
+
+            // Camera Follow
+            camera.position.x = busGroup.position.x;
+            camera.position.z = busGroup.position.z + 15;
+            camera.position.y = busGroup.position.y + 8;
+            camera.lookAt(busGroup.position);
+
+            // Update UI
+            document.getElementById('speed').innerText = Math.abs(Math.round(speed * 5));
+            document.getElementById('fuel').innerText = Math.round(fuel);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html> 
