@@ -1,44 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="ne">
 <head>
-    <title>Bus Simulator Nepal - Start</title>
+    <meta charset="UTF-8">
+    <title>Bus Simulator Nepal - Pro Max</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: Arial, sans-serif; }
         #ui {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 15px 30px;
             border-radius: 15px; display: flex; gap: 30px; font-size: 24px;
-            border: 2px solid #00ff00;
+            border: 3px solid #00ff00; box-shadow: 0 0 15px #00ff00;
         }
         #controls {
             position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8);
             color: white; padding: 15px; border-radius: 10px; font-size: 14px;
+            border: 2px solid #ff6600;
         }
-        .val { color: #00ff00; font-weight: bold; }
+        #controls h3 { color: #ff6600; margin-top: 0; }
+        .val { color: #00ff00; font-weight: bold; font-size: 28px; }
+        #speedometer {
+            position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8);
+            padding: 20px; border-radius: 50%; width: 120px; height: 120px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border: 4px solid #ff0000; color: white;
+        }
     </style>
 </head>
 <body>
     <div id="controls">
-        <h3>🚌 Controls</h3>
-        <p>⬆️ W = Agadi (Accelerate)</p>
-        <p>⬇️ S = Padi (Brake/Reverse)</p>
-        <p>⬅️ A = Baya (Left)</p>
-        <p>➡️ D = Daya (Right)</p>
+        <h3>🚌 Bus Controls</h3>
+        <p>⬆️ W / Up = Agadi (Accelerate)</p>
+        <p>⬇️ S / Down = Padi (Brake/Reverse)</p>
+        <p>⬅️ A / Left = Baya (Turn Left)</p>
+        <p>➡️ D / Right = Daya (Turn Right)</p>
+        <p>🔊 H = Horn Bajau</p>
+    </div>
+   
+    <div id="speedometer">
+        <div id="speed" class="val">0</div>
+        <div style="font-size: 12px;">KM/H</div>
     </div>
    
     <div id="ui">
-        <div>Speed: <span id="speed" class="val">0</span> km/h</div>
         <div>Fuel: <span id="fuel" class="val">100</span>%</div>
+        <div>Distance: <span id="dist" class="val">0</span> km</div>
     </div>
 
-    <!-- 3D Library -->
+    <!-- 3D Library (Three.js) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
    
     <script>
-        // 1. Scene Setup (Environment)
+        // 1. Scene Setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Aakash ko rang
-        scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+        scene.background = new THREE.Color(0x87CEEB); // Aakash
+        scene.fog = new THREE.Fog(0x87CEEB, 20, 150);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -46,41 +61,64 @@
         document.body.appendChild(renderer.domElement);
 
         // 2. Ground (Ghaas)
-        const groundGeo = new THREE.PlaneGeometry(1000, 1000);
-        const groundMat = new THREE.MeshBasicMaterial({ color: 0x228B22 }); // Green
+        const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x228B22 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         scene.add(ground);
 
+        // Light
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(50, 100, 50);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
         // 3. Road (Baato)
-        const roadGeo = new THREE.PlaneGeometry(20, 1000);
-        const roadMat = new THREE.MeshBasicMaterial({ color: 0x333333 }); // Grey
+        const roadGeo = new THREE.PlaneGeometry(25, 2000);
+        const roadMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
         const road = new THREE.Mesh(roadGeo, roadMat);
         road.rotation.x = -Math.PI / 2;
         road.position.y = 0.01;
         scene.add(road);
 
-        // 4. Bus (Hamro Bus)
+        // Road Lines
+        for (let i = -1000; i < 1000; i += 30) {
+            const lineGeo = new THREE.PlaneGeometry(1, 15);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(0, 0.02, i);
+            scene.add(line);
+        }
+
+        // 4. Bus (Hamro Sterling Bus)
         const busGroup = new THREE.Group();
        
-        // Bus Body (Raato)
-        const bodyGeo = new THREE.BoxGeometry(3, 2.5, 8);
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        // Bus Body (Raato/Nilo)
+        const bodyGeo = new THREE.BoxGeometry(3.5, 3, 10);
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xff0000 }); // Raato
         const busBody = new THREE.Mesh(bodyGeo, bodyMat);
-        busBody.position.y = 1.75;
+        busBody.position.y = 2;
         busGroup.add(busBody);
 
-        // Bus Windows (Nilo)
-        const winGeo = new THREE.BoxGeometry(3.1, 1, 6);
-        const winMat = new THREE.MeshBasicMaterial({ color: 0x87CEEB });
+        // Bus Top (Seto)
+        const topGeo = new THREE.BoxGeometry(3.6, 0.5, 10.1);
+        const topMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const busTop = new THREE.Mesh(topGeo, topMat);
+        busTop.position.y = 3.75;
+        busGroup.add(busTop);
+
+        // Windows (Nilo)
+        const winGeo = new THREE.BoxGeometry(3.6, 1.2, 8);
+        const winMat = new THREE.MeshLambertMaterial({ color: 0x87CEEB });
         const busWin = new THREE.Mesh(winGeo, winMat);
-        busWin.position.y = 2.2;
+        busWin.position.y = 2.8;
         busGroup.add(busWin);
 
         // Wheels (Kalo)
-        const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16);
-        const wheelMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const positions = [[-1.5, 0.5, 2.5], [1.5, 0.5, 2.5], [-1.5, 0.5, -2.5], [1.5, 0.5, -2.5]];
+        const wheelGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 16);
+        const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+        const positions = [[-1.8, 0.6, 3], [1.8, 0.6, 3], [-1.8, 0.6, -3], [1.8, 0.6, -3]];
         positions.forEach(pos => {
             const wheel = new THREE.Mesh(wheelGeo, wheelMat);
             wheel.rotation.z = Math.PI / 2;
@@ -90,62 +128,81 @@
 
         scene.add(busGroup);
 
-        // 5. Trees (Rukh haru)
-        for(let i=0; i<30; i++) {
+        // 5. Trees (Nepal ko Rukh)
+        for(let i=0; i<100; i++) {
             const tree = new THREE.Group();
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1), new THREE.MeshBasicMaterial({color: 0x4a2511}));
-            trunk.position.y = 0.5;
-            const leaves = new THREE.Mesh(new THREE.ConeGeometry(1, 2), new THREE.MeshBasicMaterial({color: 0x006400}));
-            leaves.position.y = 1.5;
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2), new THREE.MeshLambertMaterial({color: 0x4a2511}));
+            trunk.position.y = 1;
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.5, 4), new THREE.MeshLambertMaterial({color: 0x006400}));
+            leaves.position.y = 3;
             tree.add(trunk); tree.add(leaves);
            
-            const side = Math.random() > 0.5 ? 15 : -15;
-            tree.position.set(side + Math.random()*10, 0, (Math.random()-0.5)*200);
+            const side = Math.random() > 0.5 ? 20 : -20;
+            tree.position.set(side + Math.random()*30, 0, (Math.random()-0.5)*1000);
             scene.add(tree);
         }
 
         // 6. Game Logic
         let speed = 0;
+        let maxSpeed = 120;
         let fuel = 100;
+        let distance = 0;
         const keys = {};
 
-        document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if(e.key.toLowerCase() === 'h') playHorn();
+        });
         document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+
+        function playHorn() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 400; osc.type = 'sawtooth'; gain.gain.value = 0.2;
+            osc.start(); setTimeout(() => osc.stop(), 400);
+        }
 
         function animate() {
             requestAnimationFrame(animate);
 
-            // Acceleration
+            // Physics
             if ((keys['w'] || keys['arrowup']) && fuel > 0) {
-                speed += 0.2;
-                fuel -= 0.02;
+                speed += 0.3; fuel -= 0.02;
             } else if (keys['s'] || keys['arrowdown']) {
-                speed -= 0.2;
+                speed -= 0.3;
             } else {
-                speed *= 0.95; // Friction
+                speed *= 0.96; // Friction
             }
+            speed = Math.max(-30, Math.min(maxSpeed, speed));
 
-            // Steering
-            if (keys['a'] || keys['arrowleft']) busGroup.rotation.y += 0.03;
-            if (keys['d'] || keys['arrowright']) busGroup.rotation.y -= 0.03;
+            if (keys['a'] || keys['arrowleft']) busGroup.rotation.y += 0.02;
+            if (keys['d'] || keys['arrowright']) busGroup.rotation.y -= 0.02;
 
-            // Move
             busGroup.translateZ(-speed * 0.05);
+            if(speed > 0) distance += speed * 0.0001;
 
             // Camera Follow
             camera.position.x = busGroup.position.x;
-            camera.position.z = busGroup.position.z + 15;
+            camera.position.z = busGroup.position.z + 18;
             camera.position.y = busGroup.position.y + 8;
             camera.lookAt(busGroup.position);
 
             // Update UI
-            document.getElementById('speed').innerText = Math.abs(Math.round(speed * 5));
+            document.getElementById('speed').innerText = Math.abs(Math.round(speed));
             document.getElementById('fuel').innerText = Math.round(fuel);
+            document.getElementById('dist').innerText = distance.toFixed(1);
 
             renderer.render(scene, camera);
         }
-
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html> 
